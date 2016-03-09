@@ -6,7 +6,7 @@ from kivy.graphics import Color, Rectangle
 from kivy.graphics.texture import Texture
 from kivy.clock import Clock
 from functools import partial
-import numpy
+import numpy as np
 import cv2
 from pylepton import Lepton
  
@@ -21,7 +21,8 @@ class CanvasApp(App):
             cv2.flip(a,0,a)
         cv2.normalize(a, a, 0, 65535, cv2.NORM_MINMAX)
         np.right_shift(a, 8, a)
-        return np.uint8(a)
+	
+        return np.uint8(np.rot90(a))
     
     
     #function to add rectangle to screen
@@ -29,18 +30,35 @@ class CanvasApp(App):
     #def add_rects(self):        
         print "in add_rects"
         with wid.canvas:
-                Color(1, 0, 0, .5, mode='rgba')
+                #Color(1, 0, 0, .5, mode='rgba')
                 
-                texture = Texture.create(size=(80, 40), colorfmt="rgb")
+                texture = Texture.create(size=(80, 60), colorfmt="rgb")
                 arr = self.capture()
-                #arr = numpy.random.randint(255,size=(80,40,3))
-                #arr = numpy.array([80,40,3],dtype=uint8)
-                #arr = numpy.ndarray(shape=[80, 40, 3], dtype=numpy.uint8)
+		arr2 = np.ndarray(shape=[80,60,3],dtype=np.uint8)
+
+		for y in range(0,59):
+		    for x in range(0,79):
+			#print "x = %d, y= %d" % (x,y)
+			arr2[x][y][0]=arr[x][y]
+			arr2[x][y][1]=arr[x][y]
+			arr2[x][y][2]=arr[x][y]
+
+
+		#for p in np.nditer(arr):
+		#    arr2.append(p,p,p)
+		
+                #arr = np.random.randint(255,size=(80,40,3))
+                #arr = np.zeros((80,40,3),dtype=np.uint8)
+                #arr = np.ndarray(shape=[80, 40, 3], dtype=np.uint8)
                 #arr.fill(127)
-                data = arr.tostring()
+                #data = arr2.tostring()
+		#for x in np.nditer(arr):
+		#    print x,
+		print arr2.shape
+		data = arr2.tostring()
                 texture.blit_buffer(data, bufferfmt="ubyte", colorfmt="rgb")
                 wid.canvas.clear()
-                wid.rect = Rectangle(texture=texture, pos=(00,200), size=(640,320))
+                wid.rect = Rectangle(texture=texture, pos=(00,200), size=(640,480))
 
                 #wid.rect = Rectangle(pos=(200,200), size=(300,300))
                  
@@ -66,7 +84,7 @@ class CanvasApp(App):
         root.add_widget(wid)
         root.add_widget(layout)
 
-        Clock.schedule_interval(partial(self.update,wid=wid), 0.1)
+        Clock.schedule_interval(partial(self.update,wid=wid), 1)
         return root
     
     def __init__(self, **kwargs):
