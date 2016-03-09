@@ -12,8 +12,7 @@ from pylepton import Lepton
  
 class CanvasApp(App):
     wid=Widget()
-    
-    
+
     def capture(flip_v = False, device = "/dev/spidev0.0"):
         with Lepton(device) as l:
             a,_ = l.capture()
@@ -21,78 +20,59 @@ class CanvasApp(App):
             cv2.flip(a,0,a)
         cv2.normalize(a, a, 0, 65535, cv2.NORM_MINMAX)
         np.right_shift(a, 8, a)
-	
+
         return np.uint8(np.rot90(a))
-    
-    
+
     #function to add rectangle to screen
     def add_rects(self,wid):
-    #def add_rects(self):        
-        print "in add_rects"
         with wid.canvas:
                 #Color(1, 0, 0, .5, mode='rgba')
-                
+
                 texture = Texture.create(size=(80, 60), colorfmt="rgb")
                 arr = self.capture()
-		arr2 = np.ndarray(shape=[80,60,3],dtype=np.uint8)
-
-		for y in range(0,59):
-		    for x in range(0,79):
+		arr2 = np.ndarray(shape=[60,80,3],dtype=np.uint8)
+		#arr2.fill(0)
+		#c=0
+		for x in range(0,80):
+		    for y in range(0,60):
 			#print "x = %d, y= %d" % (x,y)
-			arr2[x][y][0]=arr[x][y]
-			arr2[x][y][1]=arr[x][y]
-			arr2[x][y][2]=arr[x][y]
+			arr2[y][79-x][0]=arr[x][y]
+			arr2[y][79-x][1]=arr[x][y]
+			arr2[y][79-x][2]=arr[x][y]
 
-
-		#for p in np.nditer(arr):
-		#    arr2.append(p,p,p)
-		
-                #arr = np.random.randint(255,size=(80,40,3))
-                #arr = np.zeros((80,40,3),dtype=np.uint8)
-                #arr = np.ndarray(shape=[80, 40, 3], dtype=np.uint8)
-                #arr.fill(127)
-                #data = arr2.tostring()
-		#for x in np.nditer(arr):
-		#    print x,
-		print arr2.shape
 		data = arr2.tostring()
                 texture.blit_buffer(data, bufferfmt="ubyte", colorfmt="rgb")
                 wid.canvas.clear()
-                wid.rect = Rectangle(texture=texture, pos=(00,200), size=(640,480))
+                wid.rect = Rectangle(texture=texture, pos=(00,100), size=(600,400))
 
-                #wid.rect = Rectangle(pos=(200,200), size=(300,300))
-                 
     #function to clear rectangle from screen
     def reset_rects(self,wid,*largs):
         wid.canvas.clear()
-    
+
     def exit(self,wid,*largs):
         exit(0)
-            
+
     def update(self,t,wid):
         self.add_rects(wid)
- 
+
     def build(self):
         wid = Widget()
-          
+
         #calling function with default arguments
         btn_clear = Button(text='Exit',on_press=partial(self.exit,wid,'Exits the program'))
- 
+
         layout = GridLayout(cols=1,rows=2)
         layout.add_widget(btn_clear)
         root=GridLayout()
         root.add_widget(wid)
         root.add_widget(layout)
 
-        Clock.schedule_interval(partial(self.update,wid=wid), 1)
+        Clock.schedule_interval(partial(self.update,wid=wid), 0.1)
         return root
-    
+
     def __init__(self, **kwargs):
         wid=Widget()
         super(CanvasApp, self).__init__(**kwargs)
 
- 
 if __name__ == '__main__':
     CanvasApp().run()
-    
-    
