@@ -7,9 +7,22 @@ from kivy.graphics.texture import Texture
 from kivy.clock import Clock
 from functools import partial
 import numpy
+import cv2
+from pylepton import Lepton
  
 class CanvasApp(App):
     wid=Widget()
+    
+    
+    def capture(flip_v = False, device = "/dev/spidev0.0"):
+        with Lepton(device) as l:
+            a,_ = l.capture()
+        if flip_v:
+            cv2.flip(a,0,a)
+        cv2.normalize(a, a, 0, 65535, cv2.NORM_MINMAX)
+        np.right_shift(a, 8, a)
+        return np.uint8(a)
+    
     
     #function to add rectangle to screen
     def add_rects(self,wid):
@@ -19,7 +32,8 @@ class CanvasApp(App):
                 Color(1, 0, 0, .5, mode='rgba')
                 
                 texture = Texture.create(size=(80, 40), colorfmt="rgb")
-                arr = numpy.random.randint(255,size=(80,40,3))
+                arr = self.capture()
+                #arr = numpy.random.randint(255,size=(80,40,3))
                 #arr = numpy.array([80,40,3],dtype=uint8)
                 #arr = numpy.ndarray(shape=[80, 40, 3], dtype=numpy.uint8)
                 #arr.fill(127)
