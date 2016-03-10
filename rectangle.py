@@ -10,69 +10,72 @@ import numpy as np
 import cv2
 from pylepton import Lepton
  
-class CanvasApp(App):
+class LeptonFB(App):
     wid=Widget()
 
-    def capture(flip_v = False, device = "/dev/spidev0.0"):
+    #capture an image from the Lepton sensor 
+    def capture(device = "/dev/spidev0.0"):
         with Lepton(device) as l:
             a,_ = l.capture()
-        if flip_v:
-            cv2.flip(a,0,a)
+        #flip in x axis as image is backwards if not
+        cv2.flip(a,1,a)
+        
+        #normalise image to take 16 bit range
         cv2.normalize(a, a, 0, 65535, cv2.NORM_MINMAX)
+        
+        #shift so that lower 8 bits contain the most significant bits
         np.right_shift(a, 8, a)
 
         return np.uint8(np.rot90(a))
 
     #function to add rectangle to screen
-    def add_rects(self,wid):
+    def draw_image(self,wid):
         with wid.canvas:
-                #Color(1, 0, 0, .5, mode='rgba')
-
                 texture = Texture.create(size=(80, 60), colorfmt="rgb")
                 arr = self.capture()
-		arr2 = np.ndarray(shape=[60,80,3],dtype=np.uint8)
-		#arr2.fill(0)
-		#c=0
-		for x in range(0,80):
-		    for y in range(0,60):
-			#print "x = %d, y= %d" % (x,y)
-			arr2[y][79-x][0]=arr[x][y]
-			arr2[y][79-x][1]=arr[x][y]
-			arr2[y][79-x][2]=arr[x][y]
 
-		data = arr2.tostring()
-                texture.blit_buffer(data, bufferfmt="ubyte", colorfmt="rgb")
-                wid.canvas.clear()
-                wid.rect = Rectangle(texture=texture, pos=(00,100), size=(600,400))
+        arr2 = np.ndarray(shape=[60,80,3],dtype=np.uint8)
+        for x in range(0,80):
+            for y in range(0,60):
+                arr2[y][79-x][0]=arr[x][y]
+                arr2[y][79-x][1]=arr[x][y]
+                arr2[y][79-x][2]=arr[x][y]
 
-    #function to clear rectangle from screen
-    def reset_rects(self,wid,*largs):
+        data = arr2.tostring() #convert to 8 bit string 
+        texture.blit_buffer(data, bufferfmt="ubyte", colorfmt="rgb")
+        #clear the screen 
         wid.canvas.clear()
+        #redraw and scale to 600x400 
+        wid.rect = Rectangle(texture=texture, pos=(00,100), size=(600,400))
 
+    #called when the user presses the exit button
     def exit(self,wid,*largs):
         exit(0)
 
+    #redraws the image
     def update(self,t,wid):
-        self.add_rects(wid)
+        #grab image and redraw 
+        self.draw_image(wid)
 
     def build(self):
         wid = Widget()
 
         #calling function with default arguments
-        btn_clear = Button(text='Exit',on_press=partial(self.exit,wid,'Exits the program'))
+        exit_btn = Button(text='Exit',on_press=partial(self.exit,wid,'Exits the program'))
 
         layout = GridLayout(cols=1,rows=2)
-        layout.add_widget(btn_clear)
+        layout.add_widget(exit_btn)
         root=GridLayout()
         root.add_widget(wid)
         root.add_widget(layout)
 
+        #trigger update to be called every 100ms
         Clock.schedule_interval(partial(self.update,wid=wid), 0.1)
         return root
 
     def __init__(self, **kwargs):
         wid=Widget()
-        super(CanvasApp, self).__init__(**kwargs)
+        super(LeptonFB, self).__init__(**kwargs)
 
 if __name__ == '__main__':
-    CanvasApp().run()
+    LeptonFB().run()
