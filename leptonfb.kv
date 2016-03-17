@@ -1,0 +1,138 @@
+#:kivy 1.0.9
+
+<LeptonFBWidget>:
+    canvas:
+        Rectangle:
+            id: image_rect
+            pos: 0,100
+            size: 600,400
+
+    GridLayout:
+        Button:
+            text: "Exit"
+            id: exit_btn
+            text_size: self.size
+            font_size: '20sp'
+            markup: True
+            pos: 0,0
+            on_press: root.exit()
+            
+        Button:
+            text: "Save"
+            id: save_btn
+            text_size: self.size
+            font_size: '20sp'
+            markup: True
+            pos: 110,0
+            on_press: root.save_image()
+            
+        Button:
+            text: "Change Mode"
+            id: mode_btn 
+            text_size: self.size
+            font_size: '20sp'
+            markup: True
+            pos: 220,0
+            on_press: root.change_mode()
+
+        Slider:
+            id: red_slider
+            height: 200
+            min: 0
+            max: 255
+            value: 128
+            orientation: 'vertical'
+            pos: 600,300
+        
+        Label:
+            id: red_slider_label
+            text: "Red"
+            pos: 600,250
+        
+            
+        Slider:
+            id: green_slider
+            height: 200
+            min: 0
+            max: 255
+            value: 128
+            orientation: 'vertical'
+            pos: 650,300
+            
+        Label:
+            id: green_slider_label
+            text: "Green"
+            pos: 650,250            
+
+        Slider:
+            id: blue_slider
+            height: 200
+            min: 0
+            max: 255
+            value: 128
+            orientation: 'vertical'
+            pos: 700,300           
+            
+        Label:
+            id: blue_slider_label
+            text: "Blue"
+            pos: 700,250            
+
+        Slider:
+            id: red2_slider
+            height: 200
+            min: 0
+            max: 255
+            value: 128
+            orientation: 'vertical'
+            pos: 600,20
+            
+        Label:
+            id: red2_slider_label
+            text: "Red"
+            height: 10
+            pos: 600,05
+            
+            
+        Slider:
+            id: green2_slider
+            height: 200
+            min: 0
+            max: 255
+            value: 128
+            orientation: 'vertical'
+            pos: 650,20
+            
+        Label:
+            id: green2_slider_label
+            text: "Green"
+            height: 10
+            pos: 650,05
+            
+            
+
+        Slider:
+            id: blue2_slider
+            height: 200
+            min: 0
+            max: 255
+            value: 128
+            orientation: 'vertical'
+            pos: 700,20                       
+            
+            
+        Label:
+            id: blue2_slider_label
+            text: "Blue"
+            height: 10
+            pos: 700,05
+            
+            
+        Label:
+            id: status_label
+            pos: 420,0
+            
+        Label:
+            id: mode_label
+            pos: 320,0
+            text: "Normalised"
