@@ -150,7 +150,7 @@ class LeptonFB(App):
         #grab image and redraw 
         self.draw_image(wid)
 
-    def draw_colourmap(self,wid)
+    def draw_colourmap(self,wid):
 	for i in range(7500,8500,2):
 	    c = Color(colourMap(i))
 
@@ -164,6 +164,13 @@ class LeptonFB(App):
         exit_btn = Button(pos=(0,00),text='Exit',on_press=partial(self.exit,wid,'Exits the program'))
         mode_btn = Button(pos=(100,00),text='Change Mode',on_press=partial(self.change_mode,wid,'Changes Image Mode'))
 	save_btn = Button(pos=(200,0),text='Save',on_press=partial(self.save_image,wid,'Saves the current view'))
+
+	red_slider = Slider(pos=(600,300),height=200,min=0,max=255,value=128,orientation='vertical')
+	green_slider = Slider(pos=(650,300),height=200,min=0,max=255,value=128,orientation='vertical')
+	blue_slider = Slider(pos=(700,300),height=200,min=0,max=255,value=128,orientation='vertical')
+	red2_slider = Slider(pos=(600,00),height=200,min=0,max=255,value=128,orientation='vertical')
+	green2_slider = Slider(pos=(650,00),height=200,min=0,max=255,value=128,orientation='vertical')
+	blue2_slider = Slider(pos=(700,00),height=200,min=0,max=255,value=128,orientation='vertical')
 	
         root=GridLayout()
         root.add_widget(wid)
@@ -174,7 +181,12 @@ class LeptonFB(App):
         root.add_widget(exit_btn)
         root.add_widget(mode_btn)
 	root.add_widget(save_btn)
-        #root.add_widget(layout)
+        root.add_widget(red_slider)
+        root.add_widget(red2_slider)
+        root.add_widget(green_slider)
+        root.add_widget(green2_slider)
+        root.add_widget(blue_slider)
+        root.add_widget(blue2_slider)
 
         #trigger update to be called every 100ms
         Clock.schedule_interval(partial(self.update,wid=wid), 0.1)
