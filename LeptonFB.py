@@ -16,6 +16,7 @@ from kivy.properties import NumericProperty, ReferenceListProperty,ObjectPropert
 import numpy as np
 import cv2
 import colorsys
+import glob
 from pylepton import Lepton
 from random import randint
 
@@ -59,12 +60,13 @@ class LeptonFBWidget(Widget):
               
         texture = Texture.create(size=(80, 60), colorfmt="rgb")
         arr = self.capture(self)
-	print "captured image shape"
-	print arr.shape
+	#print "captured image shape"
+	#print arr.shape
 
-	arr = arr-7500
+	
 
         if self.true_range == 0:
+	    arr = arr-7500
             #normalise image to take 16 bit range
             cv2.normalize(arr, arr, 0, 255, cv2.NORM_MINMAX)
 
@@ -135,8 +137,23 @@ class LeptonFBWidget(Widget):
             #imwrite wants a BGR not RGB image
             bgr = cv2.cvtColor(arr3,cv2.COLOR_RGB2BGR)
 	    out = cv2.flip(bgr,0)
-            
-            cv2.imwrite("image.png",out)
+	    filelist = glob.glob("image*.png")
+	    print filelist
+	    maxnum=0
+	    for filename in filelist:
+		
+		filenum=filename.replace("image","")
+		filenum=filenum.replace(".png","")
+		
+		try:
+		    if int(filenum) > maxnum:
+			maxnum = int(filenum)
+		except ValueError:
+		    print "non-integer name %s" % (filename)
+	    
+	    filename=("image%03d.png") % (maxnum+1)
+	    print filename
+            cv2.imwrite(filename,out)
             self.save_next=0
 
         texture.blit_buffer(arr3.tostring(), bufferfmt="ubyte", colorfmt="rgb")
