@@ -28,43 +28,24 @@ class LeptonFBWidget(Widget):
     #capture an image from the Lepton sensor 
     def capture(self,flip_v = False , device = "/dev/spidev0.0"):
 
-        #with Lepton(device) as l:
-        #    a,_ = l.capture()
-        a = np.ndarray(shape=[60,80],dtype=np.uint32)
-        a.fill(randint(7500,8500))
-        
-        #if self.true_range == 0:
-            #normalise image to take 16 bit range
-            #cv2.normalize(a, a, 0, 255, cv2.NORM_MINMAX)
-
-            #shift so that lower 8 bits contain the most significant bits
-            #np.right_shift(a, 8, a)
-        #else:
-        #a2=cv2.applyColorMap(a,cv2.COLORMAP_OCEAN)
-        #a=np.reshape(a2,(60,80,1))
-    
-        #return np.uint32(a)
+        with Lepton(device) as l:
+            a,_ = l.capture()
+	#print a.shape
         return a
 
     def rgb(self,minval,maxval,val,minangle,anglerange):
         #s = (float(v-minval) / (maxval-minval)) * anglerange
         v = (float(val-minval) / (maxval-minval)) * (anglerange/3)
-        v =  100
+        v =  v + 100
         #h = 240
         h = (float(val-minval) / (maxval-minval)) * (anglerange)
-        h =  minangle
+        h =  h + minangle
         
         r,g,b = colorsys.hsv_to_rgb(h/360,1.0,v/360)
         return int(r*255),int(g*255),int(b*255)
         #return v,v,v
     
-    def colourMap(self,value):
-        aR = int(self.ids["red_slider"].value)
-        aG = int(self.ids["green_slider"].value)
-        aB = int(self.ids["blue_slider"].value)
-        bR = int(self.ids["red2_slider"].value)
-        bG = int(self.ids["green2_slider"].value)
-        bB = int(self.ids["blue2_slider"].value)
+    def colourMap(self,value,aR,aG,aB,bR,bG,bB):
         
         r = (float)(bR - aR) * value + aR
         g = (float)(bG - aG) * value + aG
@@ -73,64 +54,92 @@ class LeptonFBWidget(Widget):
         return (r,g,b)
 
     #function to add rectangle to screen
-    def draw_image(self):
+    def draw_image(self,dt):
         image_rect = ObjectProperty(None)
               
         texture = Texture.create(size=(80, 60), colorfmt="rgb")
         arr = self.capture(self)
-        print arr.shape
+	print "captured image shape"
+	print arr.shape
+
+	arr = arr-7500
+
+        if self.true_range == 0:
+            #normalise image to take 16 bit range
+            cv2.normalize(arr, arr, 0, 255, cv2.NORM_MINMAX)
+
+            #shift so that lower 8 bits contain the most significant bits
+            #np.right_shift(arr, 8, arr)
+        #a = np.ndarray(shape=[60,80],dtype=np.uint32)
+        #a.fill(randint(7500,8500))
+        
+        #else:
+        #a2=cv2.applyColorMap(a,cv2.COLORMAP_OCEAN)
+        #a=
+    
+        #return np.uint32(a)
+
+
         arr2 = np.ndarray(shape=[60,80,3],dtype=np.uint8)
 
-        #dt=np.dtype((np.uint32,{'r':(np.uint8,0),'g':(np.uint8,1),'b':(np.uint8,2),'a':(np.uint8,3)}))
+        dtp=np.dtype((np.uint32,{'r':(np.uint8,0),'g':(np.uint8,1),'b':(np.uint8,2),'a':(np.uint8,3)}))
         amin=np.amin(arr)
         amax=np.amax(arr)
-        self.ids["status_label"].text = "range: %d\nmin: %d\nmax: %d" % (amax-amin,amin,amax)
+        self.ids["status_label"].text = "dt: %f\nrange: %d\nmin: %d\nmax: %d" % (dt,amax-amin,amin,amax)
+
+        #aR = int(self.ids["red_slider"].value)
+        #aG = int(self.ids["green_slider"].value)
+        #aB = int(self.ids["blue_slider"].value)
+        #bR = int(self.ids["red2_slider"].value)
+        #bG = int(self.ids["green2_slider"].value)
+        #bB = int(self.ids["blue2_slider"].value)
+	#hsv = np.ndarray(shape=[60,80])
+	#print "pre color map"
+	#print arr.shape
+	#np.reshape(arr,(60,80))
+
+	#print "post color map" 
+	#print arr.shape
+        a=np.uint32(arr)
         for x in range(0,80):
             for y in range(0,60):
                 #v = arr[59-y][x].view(dtype=dt)
                 if self.true_range == 0:
-                    value = arr[59-y][x]
+                    value = 255-(arr[59-y][x])
             
-                    print "value=%d" % (value)     
-                    r,g,b = self.colourMap(value)
-                    #r,g,b = self.rgb(0,255,value,240,120)
-                    #r = value[0]
-                    #g = value[1]
-                    #b = value[2]
-                    #print "r=%d g=%d b=%d" % (r,g,b)
-            
-                    arr2[y][x][0]=r
-                    arr2[y][x][1]=g
-                    arr2[y][x][2]=b
+                    arr2[y][x][0]=value
+                    arr2[y][x][1]=value
+                    arr2[y][x][2]=value
                 else: 
-                    value = arr[59-y][x]
-                    #print value
+		    #print "value = %d" % (arr[59-y][x])
+		    #print a.shape
+		    #print "x = %d y= %d" % (x,59-y)
+                    value = a[59-y][x].view(dtype=dtp)
+                    
 
                     #10000 approx 100C 8000 approx 20C, 7500 approx 0??
                     #r,g,b = self.rgb(7500,8800,value,160,200)
-                    r,g,b = self.colourMap(value)
+
+                    #r,g,b = self.colourMap(value,aR,aG,aB,bR,bG,bB)
                     #print r
                     #print g
                     #print b
-                    arr2[y][x][0]=r
-                    arr2[y][x][1]=g
-                    arr2[y][x][2]=b
-
-        #print arr[30][40].view(dtype=dt)['r']
-        #print arr[30][40].view(dtype=dt)['g']
-        #print arr[30][40].view(dtype=dt)['b']
-
-        data = arr2.tostring() #convert to 8 bit string 
+                    arr2[y][x][0]=value['r']
+                    arr2[y][x][1]=value['b']
+                    arr2[y][x][2]=value['g']
+	
+        arr3 = cv2.applyColorMap(arr2,7)
 
         #see if we are wanting to save this image
         if self.save_next == 1:
             #imwrite wants a BGR not RGB image
-            bgr = cv2.cvtColor(arr2,cv2.COLOR_RGB2BGR)
-        
-            cv2.imwrite("image.png",bgr)
+            bgr = cv2.cvtColor(arr3,cv2.COLOR_RGB2BGR)
+	    out = cv2.flip(bgr,0)
+            
+            cv2.imwrite("image.png",out)
             self.save_next=0
 
-        texture.blit_buffer(data, bufferfmt="ubyte", colorfmt="rgb")
+        texture.blit_buffer(arr3.tostring(), bufferfmt="ubyte", colorfmt="rgb")
         
         #clear the screen 
         #wid.canvas.clear()
@@ -141,7 +150,7 @@ class LeptonFBWidget(Widget):
         #wid.rect = Rectangle(texture=texture, pos=(00,100), size=(600,400))
 
     #called when the user presses the exit button
-    def exit(self,wid,*largs):
+    def exit(self):
         exit(0)
 
     #called when the user presses the exit button
@@ -160,16 +169,31 @@ class LeptonFBWidget(Widget):
     #redraws the image
     def update(self,t):
         #grab image and redraw 
-        self.draw_image()
+        self.draw_image(t)
 
-    def draw_colourmap(self,wid):
-        for i in range(7500,8500,2):
-            c = Color(colourMap(i))
-            Line(points=[500,(i/2)-7500,500,(i/2)-7499],width=1)           
+    def draw_colourmap(self):
+        colourmap_rect = ObjectProperty(None)
+              
+        t = Texture.create(size=(20, 256), colorfmt="rgb")
+
+	arr = np.ndarray(shape=[256,20],dtype=np.uint8)
+	arr.fill(0)
+        for i in range(0,256):
+	    for x in range(0,20):
+		arr[i][x]=255-i
+    	arr2 = cv2.applyColorMap(arr,7)
+
+        t.blit_buffer(arr2.tostring(), bufferfmt="ubyte", colorfmt="rgb")
+
+        with self.canvas:
+            self.colourmap_rect = Rectangle(texture=t,pos=(700,100),size=(20,255))
+	
+
 
 class LeptonFB(App):
      def build(self):
         wid = LeptonFBWidget()
+	wid.draw_colourmap()
         Clock.schedule_interval(wid.update, 0.1)
         return wid
 
