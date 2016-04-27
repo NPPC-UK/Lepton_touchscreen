@@ -132,6 +132,11 @@ class LeptonFBWidget(Widget):
 	
         arr3 = cv2.applyColorMap(arr2,7)
 
+
+        bgr = cv2.cvtColor(arr3,cv2.COLOR_RGB2BGR)
+        out = cv2.flip(bgr,0)
+        cv2.imwrite("image.jpg",out)
+
         #see if we are wanting to save this image
         if self.save_next == 1:
             #imwrite wants a BGR not RGB image
