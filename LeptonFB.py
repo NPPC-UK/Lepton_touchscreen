@@ -87,6 +87,7 @@ class LeptonFBWidget(Widget):
         dtp=np.dtype((np.uint32,{'r':(np.uint8,0),'g':(np.uint8,1),'b':(np.uint8,2),'a':(np.uint8,3)}))
         amin=np.amin(arr)
         amax=np.amax(arr)
+	centre=arr[20][40]
         self.ids["status_label"].text = "dt: %f\nrange: %d\nmin: %d\nmax: %d" % (dt,amax-amin,amin,amax)
 
         #aR = int(self.ids["red_slider"].value)
@@ -143,7 +144,7 @@ class LeptonFBWidget(Widget):
             bgr = cv2.cvtColor(arr3,cv2.COLOR_RGB2BGR)
 	    out = cv2.flip(bgr,0)
 	    filelist = glob.glob("image*.png")
-	    print filelist
+	    
 	    maxnum=0
 	    for filename in filelist:
 		
@@ -158,7 +159,12 @@ class LeptonFBWidget(Widget):
 	    
 	    filename=("image%03d.png") % (maxnum+1)
 	    print filename
-            cv2.imwrite(filename,out)
+	    out = cv2.resize(out,(320,240))
+	    out2 = cv2.copyMakeBorder(out,0,20,0,0,cv2.BORDER_CONSTANT,value=[0,0,0])
+	    imageText="min: %d max: %d centre: %d" % (amin,amax,centre)
+	    #cv2.InitFont(cv.CV_FONT_HERSHEY_PLAIN,1,1,shear=0,thickness=1,lineType=8)
+	    cv2.putText(out2,imageText,(0,255),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255,255,255))
+            cv2.imwrite(filename,out2)
             self.save_next=0
 
         texture.blit_buffer(arr3.tostring(), bufferfmt="ubyte", colorfmt="rgb")
