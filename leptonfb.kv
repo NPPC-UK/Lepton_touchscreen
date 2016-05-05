@@ -8,13 +8,14 @@
             size: 600,400
         Rectangle:
             id: colourmap_rect
-            pos: 500,100
+            pos: 450,150
             size: 20,256
+
 
 
     GridLayout:
         Button:
-            text: "Exit"
+            text: "Exit (e)"
             id: exit_btn
             text_size: self.size
             font_size: '20sp'
@@ -23,7 +24,7 @@
             on_press: root.exit()
             
         Button:
-            text: "Save"
+            text: "Save (s)"
             id: save_btn
             text_size: self.size
             font_size: '20sp'
@@ -32,21 +33,47 @@
             on_press: root.save_image()
             
         Button:
-            text: "Change Mode"
+            text: "Change Mode (m)"
             id: mode_btn 
             text_size: self.size
             font_size: '20sp'
             markup: True
             pos: 220,0
             on_press: root.change_mode()
-
-            
+	Button:
+	    text: "Change Display (d)"
+	    id: disp_btn
+	    text_size: self.size
+	    font_size: '20sp'
+	    markup: True
+	    pos: 330,0
+	    on_press: root.change_display()
             
         Label:
             id: status_label
-            pos: 420,0
+            pos: 670,10
             
         Label:
             id: mode_label
-            pos: 320,0
-            text: "Normalised"
+            pos: 655,-35
+            text: "Mode: Normalised"
+
+        Label:
+            id: mesg_label
+            pos: 500,0
+            text: ""
+
+        Label:
+            id: min_label
+            pos: 690,60
+            text: "min"
+
+        Label:
+            id: mid_label
+            pos: 690,230
+            text: "mid"
+
+        Label:
+            id: max_label
+            pos: 690,420
+            text: "max"

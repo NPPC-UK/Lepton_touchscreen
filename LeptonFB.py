@@ -19,12 +19,43 @@ import colorsys
 import glob
 from pylepton import Lepton
 from random import randint
-
+from kivy.core.window import Window
+from kivy.modules import keybinding
 
 class LeptonFBWidget(Widget):
     wid=Widget()
     true_range=0
     save_next=0
+    key_action=""
+
+    def __init__(self,**kwargs):
+	super(LeptonFBWidget,self).__init__(**kwargs)
+	self._keyboard = Window.request_keyboard(self._keyboard_closed,self)
+	self._keyboard.bind(on_key_down=self.keyboard_handler)
+
+    def _keyboard_closed(self):
+	print "Keyboard closed"
+	self._keyboard.unbind(on_key_down=self.keyboard_handler)
+	self._keyboard=None
+
+    def keyboard_handler(self,keyboard,keycode,text,modifiers):
+	self.key_action=keycode[1]
+	return True
+
+
+    #def __init__(self, **kwargs):
+#	super(LeptonFBWidget,self).__init__(*kwargs)
+#	self._keyboard = self.wid.request_keyboard(self._keyboard_closed, self)
+#	self._keyboard.bind(on_key_down=self._on_keyboard_down)
+
+#    def _keyboard_closed(self):
+#	self._keyboard.unbind(on_key_down=self._on_keyboard_down)
+#	self._keyboard = None
+
+#    def _on_keyboard_down(self,keyboard,keycode,text,modifiers):
+#	if keycode[1] == 'd':
+#	    change_display()
+#	return True
 
     #capture an image from the Lepton sensor 
     def capture(self,flip_v = False , device = "/dev/spidev0.0"):
@@ -55,12 +86,23 @@ class LeptonFBWidget(Widget):
         return (r,g,b)
     
     def convertTemp(self,value):
-	return (value-7725)/22.5
+	return (value-7600)/29
 
     #function to add rectangle to screen
     def draw_image(self,dt):
         image_rect = ObjectProperty(None)
-              
+
+	if self.key_action == 'd':
+	    self.change_display()
+	if self.key_action == 'e':
+	    exit(0)
+	if self.key_action == 's':
+	    self.save_next=1
+	if self.key_action == 'm':
+	    self.change_mode()
+        self.key_action = ''
+	    
+
         texture = Texture.create(size=(80, 60), colorfmt="rgb")
         arr = self.capture(self)
 	#print "captured image shape"
@@ -93,7 +135,10 @@ class LeptonFBWidget(Widget):
         arr2 = np.ndarray(shape=[60,80,3],dtype=np.uint8)
 
         dtp=np.dtype((np.uint32,{'r':(np.uint8,0),'g':(np.uint8,1),'b':(np.uint8,2),'a':(np.uint8,3)}))
-        self.ids["status_label"].text = "fps: %f\nrange: %d\nmin: %d\nmax: %d" % (1/dt,max_temp-min_temp,min_temp,max_temp)
+        self.ids["status_label"].text = "fps: %f\nrange: %d\nmin: %d\nmax: %d centre: %d" % (1/dt,amax-amin,amin,amax,centre)
+	self.ids["min_label"].text="Min: %d C" % (min_temp)
+	self.ids["mid_label"].text="Mid: %d C" % (cen_temp)
+	self.ids["max_label"].text="Max: %d C" % (max_temp)
 
         #aR = int(self.ids["red_slider"].value)
         #aG = int(self.ids["green_slider"].value)
@@ -165,11 +210,16 @@ class LeptonFBWidget(Widget):
 	    filename=("image%03d.png") % (maxnum+1)
 	    print filename
 	    out = cv2.resize(out,(320,240))
-	    out2 = cv2.copyMakeBorder(out,0,20,0,0,cv2.BORDER_CONSTANT,value=[0,0,0])
+	    out2 = cv2.copyMakeBorder(out,0,40,0,0,cv2.BORDER_CONSTANT,value=[0,0,0])
 	    imageText="min: %d max: %d centre: %d" % (amin,amax,centre)
+	    imageText2="min: %d max: %d centre: %d" % (min_temp,max_temp,cen_temp)
+
 	    #cv2.InitFont(cv.CV_FONT_HERSHEY_PLAIN,1,1,shear=0,thickness=1,lineType=8)
 	    cv2.putText(out2,imageText,(0,255),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255,255,255))
+	    cv2.putText(out2,imageText2,(0,275),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255,255,255))
             cv2.imwrite(filename,out2)
+	    
+            self.ids["mesg_label"].text="Saved "+filename
             self.save_next=0
 
         texture.blit_buffer(arr3.tostring(), bufferfmt="ubyte", colorfmt="rgb")
@@ -190,11 +240,16 @@ class LeptonFBWidget(Widget):
     def change_mode(self):
         if self.true_range == 0:
             self.true_range = 1
-            self.ids["mode_label"].text="True Range"
+            self.ids["mode_label"].text="Mode: True Range"
         else:
             self.true_range = 0
-            self.ids["mode_label"].text="Normalised"
+            self.ids["mode_label"].text="Mode: Normalised"
         print "changed mode"
+
+    def change_display(self):
+	self.change_display_next=1
+	print "changing display"
+	exit(1)
 
     def save_image(self):
         self.save_next=1
@@ -219,12 +274,13 @@ class LeptonFBWidget(Widget):
         t.blit_buffer(arr2.tostring(), bufferfmt="ubyte", colorfmt="rgb")
 
         with self.canvas:
-            self.colourmap_rect = Rectangle(texture=t,pos=(700,100),size=(20,255))
-	
+            self.colourmap_rect = Rectangle(texture=t,pos=(780,100),size=(20,400))
+	    #pos=(650,150)
 
 
 class LeptonFB(App):
-     def build(self):
+
+    def build(self):
         wid = LeptonFBWidget()
 	wid.draw_colourmap()
         Clock.schedule_interval(wid.update, 0.1)
