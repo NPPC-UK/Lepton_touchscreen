@@ -53,6 +53,9 @@ class LeptonFBWidget(Widget):
         b = (float)(bB - bB) * value + aB
 
         return (r,g,b)
+    
+    def convertTemp(self,value):
+	return (value-7725)/22.5
 
     #function to add rectangle to screen
     def draw_image(self,dt):
@@ -63,7 +66,12 @@ class LeptonFBWidget(Widget):
 	#print "captured image shape"
 	#print arr.shape
 
-	
+        amin=np.amin(arr)
+        amax=np.amax(arr)
+	centre=arr[20][40]
+	min_temp=self.convertTemp(amin)
+	max_temp=self.convertTemp(amax)
+	cen_temp=self.convertTemp(centre)
 
         if self.true_range == 0:
 	    arr = arr-7500
@@ -85,10 +93,7 @@ class LeptonFBWidget(Widget):
         arr2 = np.ndarray(shape=[60,80,3],dtype=np.uint8)
 
         dtp=np.dtype((np.uint32,{'r':(np.uint8,0),'g':(np.uint8,1),'b':(np.uint8,2),'a':(np.uint8,3)}))
-        amin=np.amin(arr)
-        amax=np.amax(arr)
-	centre=arr[20][40]
-        self.ids["status_label"].text = "dt: %f\nrange: %d\nmin: %d\nmax: %d" % (dt,amax-amin,amin,amax)
+        self.ids["status_label"].text = "fps: %f\nrange: %d\nmin: %d\nmax: %d" % (1/dt,max_temp-min_temp,min_temp,max_temp)
 
         #aR = int(self.ids["red_slider"].value)
         #aG = int(self.ids["green_slider"].value)
