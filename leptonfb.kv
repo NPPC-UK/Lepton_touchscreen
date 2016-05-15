@@ -15,7 +15,7 @@
 
     GridLayout:
         Button:
-            text: "Exit (e)"
+            text: "Shutdown (h)"
             id: exit_btn
             text_size: self.size
             font_size: '20sp'
@@ -32,21 +32,14 @@
             pos: 110,0
             on_press: root.save_image()
             
-        Button:
-            text: "Change Mode (m)"
-            id: mode_btn 
-            text_size: self.size
-            font_size: '20sp'
-            markup: True
-            pos: 220,0
-            on_press: root.change_mode()
+
 	Button:
 	    text: "Change Display (d)"
 	    id: disp_btn
 	    text_size: self.size
 	    font_size: '20sp'
 	    markup: True
-	    pos: 330,0
+	    pos: 220,0
 	    on_press: root.change_display()
             
         Label:

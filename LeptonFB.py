@@ -17,6 +17,7 @@ import numpy as np
 import cv2
 import colorsys
 import glob
+import time
 from pylepton import Lepton
 from random import randint
 from kivy.core.window import Window
@@ -26,6 +27,7 @@ class LeptonFBWidget(Widget):
     wid=Widget()
     true_range=0
     save_next=0
+    last_time=0
     key_action=""
 
     def __init__(self,**kwargs):
@@ -43,25 +45,12 @@ class LeptonFBWidget(Widget):
 	return True
 
 
-    #def __init__(self, **kwargs):
-#	super(LeptonFBWidget,self).__init__(*kwargs)
-#	self._keyboard = self.wid.request_keyboard(self._keyboard_closed, self)
-#	self._keyboard.bind(on_key_down=self._on_keyboard_down)
-
-#    def _keyboard_closed(self):
-#	self._keyboard.unbind(on_key_down=self._on_keyboard_down)
-#	self._keyboard = None
-
-#    def _on_keyboard_down(self,keyboard,keycode,text,modifiers):
-#	if keycode[1] == 'd':
-#	    change_display()
-#	return True
-
     #capture an image from the Lepton sensor 
     def capture(self,flip_v = False , device = "/dev/spidev0.0"):
-
+	#print "waiting for capture " + str(time.time())
         with Lepton(device) as l:
             a,_ = l.capture()
+	#print "capture done " + str(time.time())
 	#print a.shape
         return a
 
@@ -92,15 +81,6 @@ class LeptonFBWidget(Widget):
     def draw_image(self,dt):
         image_rect = ObjectProperty(None)
 
-	if self.key_action == 'd':
-	    self.change_display()
-	if self.key_action == 'e':
-	    exit(0)
-	if self.key_action == 's':
-	    self.save_next=1
-	if self.key_action == 'm':
-	    self.change_mode()
-        self.key_action = ''
 	    
 
         texture = Texture.create(size=(80, 60), colorfmt="rgb")
@@ -114,11 +94,13 @@ class LeptonFBWidget(Widget):
 	min_temp=self.convertTemp(amin)
 	max_temp=self.convertTemp(amax)
 	cen_temp=self.convertTemp(centre)
+	#print "converted temp " + str(time.time())
 
         if self.true_range == 0:
 	    arr = arr-7500
             #normalise image to take 16 bit range
             cv2.normalize(arr, arr, 0, 255, cv2.NORM_MINMAX)
+	    #print "normalisation complete " + str(time.time())
 
             #shift so that lower 8 bits contain the most significant bits
             #np.right_shift(arr, 8, arr)
@@ -133,12 +115,14 @@ class LeptonFBWidget(Widget):
 
 
         arr2 = np.ndarray(shape=[60,80,3],dtype=np.uint8)
+	#print "reshaped array " + str(time.time())
 
         dtp=np.dtype((np.uint32,{'r':(np.uint8,0),'g':(np.uint8,1),'b':(np.uint8,2),'a':(np.uint8,3)}))
         self.ids["status_label"].text = "fps: %f\nrange: %d\nmin: %d\nmax: %d centre: %d" % (1/dt,amax-amin,amin,amax,centre)
 	self.ids["min_label"].text="Min: %d C" % (min_temp)
 	self.ids["mid_label"].text="Mid: %d C" % (cen_temp)
 	self.ids["max_label"].text="Max: %d C" % (max_temp)
+	#print "drawn labels " + str(time.time())
 
         #aR = int(self.ids["red_slider"].value)
         #aG = int(self.ids["green_slider"].value)
@@ -168,7 +152,7 @@ class LeptonFBWidget(Widget):
 		    #print a.shape
 		    #print "x = %d y= %d" % (x,59-y)
                     value = a[59-y][x].view(dtype=dtp)
-                    
+
 
                     #10000 approx 100C 8000 approx 20C, 7500 approx 0??
                     #r,g,b = self.rgb(7500,8800,value,160,200)
@@ -181,12 +165,19 @@ class LeptonFBWidget(Widget):
                     arr2[y][x][1]=value['b']
                     arr2[y][x][2]=value['g']
 	
-        arr3 = cv2.applyColorMap(arr2,7)
+        #print "parsed array " + str(time.time())
 
+        arr3 = cv2.applyColorMap(arr2,7)
+        #print "applied colourmap " + str(time.time())
 
         bgr = cv2.cvtColor(arr3,cv2.COLOR_RGB2BGR)
+        #print "converted colourspace " + str(time.time())
+
         out = cv2.flip(bgr,0)
+        #print "flipped image " + str(time.time())
+
         cv2.imwrite("/tmp/image.jpg",out)
+        #print "written image " + str(time.time())
 
         #see if we are wanting to save this image
         if self.save_next == 1:
@@ -223,13 +214,15 @@ class LeptonFBWidget(Widget):
             self.save_next=0
 
         texture.blit_buffer(arr3.tostring(), bufferfmt="ubyte", colorfmt="rgb")
+        #print "blitted texture " + str(time.time())
         
         #clear the screen 
         #wid.canvas.clear()
         #redraw and scale to 600x400 
         with self.canvas:
             self.image_rect = Rectangle(texture=texture, pos=(00,100), size=(600,400))
-
+	
+        #print "drawn image " + str(time.time())
         #wid.rect = Rectangle(texture=texture, pos=(00,100), size=(600,400))
 
     #called when the user presses the exit button
@@ -256,8 +249,38 @@ class LeptonFBWidget(Widget):
 
     #redraws the image
     def update(self,t):
+
+	#restart program if framerate drops
+	# due to random bug where kivy scheduler stops running at right frequency after about 5 min
+	if self.last_time==0:
+	    self.last_time=time.time()
+
+	time_diff=time.time()-self.last_time
+
+	if time_diff>1.0:
+	    print "Large time difference detected, restarting"
+	    exit(2)
+	self.last_time=time.time()
+
+	#check keyboard actions
+	if self.key_action == 'd':
+	    self.change_display()
+	if self.key_action == 'h':
+	    exit(0)
+	if self.key_action == 's':
+	    self.save_next=1
+	if self.key_action == 'm':
+	    self.change_mode()
+        self.key_action = ''
+
+
+	#print "starting update" + str(time.time())
+	#print "time diff = " + str(time_diff)
         #grab image and redraw 
         self.draw_image(t)
+	#print "update complete" + str(time.time())
+	#print
+
 
     def draw_colourmap(self):
         colourmap_rect = ObjectProperty(None)
