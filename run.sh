@@ -9,17 +9,17 @@ while [ "0" = "0" ] ; do
     case $? in
     1)
 	echo "switching display"
-	if [ "$VC_DISPLAY" = "5" ] ; then
-	    export VC_DISPLAY=4
-	    echo "Switching to touchscreen"
-	else
-	    export VC_DISPLAY=5
-	    echo "Switching to HDMI"
-	fi
+	#if [ "$VC_DISPLAY" = "5" ] ; then
+	#    export VC_DISPLAY=4
+	#    echo "Switching to touchscreen"
+	#else
+	#    export VC_DISPLAY=5
+	#    echo "Switching to HDMI"
+	#fi
 	;;
     0) 
-	echo "waiting 10 seconds to allow debugging"
-	sleep 60
+	echo "waiting 15 seconds to allow debugging"
+	sleep 15
         break
 	;;
     2)

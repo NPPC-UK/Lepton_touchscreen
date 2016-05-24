@@ -58,10 +58,10 @@ class LeptonFBWidget(Widget):
         return a
     
     def raw2Temp(self,value):
-	return (value-7600)/29
+	return (value-7400)/29
 
     def temp2Raw(self,value):
-	return (value*29)+7600
+	return (value*29)+7400
 
     #function to add rectangle to screen
     def draw_image(self,dt):
@@ -79,6 +79,8 @@ class LeptonFBWidget(Widget):
 	centre=arr[20][40]
 	min_temp_show=self.ids["min_temp_slider"].value
 	max_temp_show=self.ids["max_temp_slider"].value
+	mid_temp_show=((max_temp_show-min_temp_show)/2)+min_temp_show
+
 	if min_temp_show>max_temp_show:
 	    min_temp_show=max_temp_show-1
 	    self.ids["min_temp_slider"].value=min_temp_show
@@ -87,19 +89,38 @@ class LeptonFBWidget(Widget):
 	max_temp=self.raw2Temp(amax)
 	centre_temp=self.raw2Temp(centre)
 
-        #clip values between the min and max
-	arr=np.clip(arr,self.temp2Raw(min_temp_show),self.temp2Raw(max_temp_show))
 
         #normalise image to take 8 bit range
-        cv2.normalize(arr, arr, 0, 255, cv2.NORM_MINMAX)
+	#arr = arr -self.temp2Raw(min_temp_show) #make zero the lowest temp we want to display
+	#arr[59][79]=self.temp2Raw(max_temp_show) #put in one pixel at highest temp to force normalisation to use this as max
+
+	#we want to normalise so that min_raw_show to max_raw_show represents an 8 bit range	
+	min_raw_show=self.temp2Raw(min_temp_show)   #7000
+	max_raw_show=self.temp2Raw(max_temp_show)   #8000
+	raw_show_diff=max_raw_show-min_raw_show   #1000
+
+	#clip values between the min and max
+	arr=np.clip(arr,min_raw_show,max_raw_show)
+	min_raw=np.amin(arr)
+        max_raw=np.amax(arr)
+
+	diff_divisor=raw_show_diff/255 #3.92
+	
+	max_raw_norm=(max_raw-min_raw_show)/diff_divisor #204
+	min_raw_norm=(min_raw-min_raw_show)/diff_divisor #102
+	
+
+        cv2.normalize(arr, arr, min_raw_norm, max_raw_norm, cv2.NORM_MINMAX)
+	
 
         arr2 = np.ndarray(shape=[60,80,3],dtype=np.uint8)
 	#print "reshaped array " + str(time.time())
 
         dtp=np.dtype((np.uint32,{'r':(np.uint8,0),'g':(np.uint8,1),'b':(np.uint8,2),'a':(np.uint8,3)}))
         self.ids["status_label"].text = "Coldest Temperatute: %d C\nHottest Temperate: %d C\nMiddle Pixel: %d C\nColour Map: %d" % (min_temp,max_temp,centre_temp,self.colourmap)
+	#self.ids["status_label"].text = "Min Temp: %d C (%d)\nMax Temp: %d C (%d)\nCentre: %d C Val: %d\nColour Map: %d" % (min_temp,amin,max_temp,amax,centre_temp,centre,self.colourmap)
 	self.ids["min_label"].text="%d C" % (min_temp_show)
-	#self.ids["mid_label"].text="Mid: %d C" % (cen_temp)
+	self.ids["mid_label"].text="%d C" % (mid_temp_show)
 	self.ids["max_label"].text="%d C" % (max_temp_show)
 
         a=np.uint32(arr)
@@ -212,8 +233,8 @@ class LeptonFBWidget(Widget):
 	self.last_time=time.time()
 
 	#check keyboard actions
-	if self.key_action == 'd':
-	    self.change_display()
+#	if self.key_action == 'd':
+#	    self.change_display()
 	if self.key_action == 'h':
 	    exit(0)
 	if self.key_action == 's':
@@ -241,6 +262,9 @@ class LeptonFBWidget(Widget):
 
         with self.canvas:
             self.colourmap_rect = Rectangle(texture=t,pos=(780,100),size=(20,400))
+
+#    def on_touch_down(self,touch):
+#	print (touch)
 
 class LeptonFB(App):
 
