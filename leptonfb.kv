@@ -15,49 +15,77 @@
 
     GridLayout:
         Button:
-            text: "Exit (e)"
+            text: "Shutdown (h)"
             id: exit_btn
             text_size: self.size
             font_size: '20sp'
             markup: True
-            pos: 0,0
+            pos: 110,0
             on_press: root.exit()
             
-        Button:
-            text: "Save (s)"
-            id: save_btn
-            text_size: self.size
-            font_size: '20sp'
-            markup: True
-            pos: 110,0
-            on_press: root.save_image()
+#        Button:
+#            text: "Save (s)"
+#            id: save_btn
+#            text_size: self.size
+#            font_size: '20sp'
+#            markup: True
+#            pos: 110,0
+#            on_press: root.save_image()
             
-        Button:
-            text: "Change Mode (m)"
-            id: mode_btn 
-            text_size: self.size
-            font_size: '20sp'
-            markup: True
-            pos: 220,0
-            on_press: root.change_mode()
+
+#	Button:
+#	    text: "Change Display (d)"
+#	    id: disp_btn
+#	    text_size: self.size
+#	    font_size: '20sp'
+#	    markup: True
+#	    pos: 220,0
+#	    on_press: root.change_display()
+
 	Button:
-	    text: "Change Display (d)"
+	    text: "Change Colourmap (c)"
 	    id: disp_btn
 	    text_size: self.size
 	    font_size: '20sp'
 	    markup: True
-	    pos: 330,0
-	    on_press: root.change_display()
+	    pos: 0,0
+	    on_press: root.change_colourmap()
+
+
+
+
+	Slider:
+	    id: min_temp_slider
+	    pos: 680,120
+	    height: 150
+	    orientation: 'vertical'
+	    range: (0,30)
+	    value: 10
+
+	Slider:
+	    id: max_temp_slider
+	    pos: 680,280
+	    height: 150
+	    orientation: 'vertical'
+	    range: (20,60)
+	    value: 40
+
+	Label: 
+	    id: min_temp_slider_label
+	    pos: 600,120
+	    text: "Coldest\ntemperature\nto display"
+
+    
+	Label: 
+	    id: max_temp_slider_label
+	    pos: 610,280
+	    text: "Hottest\ntemperature\nto display"
+	    
             
         Label:
             id: status_label
-            pos: 670,10
+            pos: 660,0
             
-        Label:
-            id: mode_label
-            pos: 655,-35
-            text: "Mode: Normalised"
-
         Label:
             id: mesg_label
             pos: 500,0
@@ -65,15 +93,15 @@
 
         Label:
             id: min_label
-            pos: 690,60
-            text: "min"
+            pos: 712,60
+            text: ""
 
         Label:
             id: mid_label
-            pos: 690,230
+            pos: 712,230
             text: "mid"
 
         Label:
             id: max_label
-            pos: 690,420
-            text: "max"
+            pos: 712,420
+            text: ""
