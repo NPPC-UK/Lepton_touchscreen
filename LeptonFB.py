@@ -1,79 +1,80 @@
 #!/usr/bin/python
+"""Displays a touchscreen interface for a FLIR Lepton thermal imager on a
+Raspberry Pi touchscreen (or any other Kivy compatible device)  """
 
-from kivy.uix.button import Button
+
 from kivy.uix.widget import Widget
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.stacklayout import StackLayout
 from kivy.app import App
-from kivy.graphics import Color, Rectangle
+from kivy.graphics import Rectangle
 from kivy.graphics.texture import Texture
-from kivy.uix.label import Label
-from kivy.uix.slider import Slider
 from kivy.clock import Clock
-from kivy.lang import Builder
-from functools import partial
-from kivy.properties import NumericProperty, ReferenceListProperty
 from kivy.properties import ObjectProperty
 import numpy as np
 import cv2
-import colorsys
 import glob
 import time
 from pylepton import Lepton
-from random import randint
 from kivy.core.window import Window
-from kivy.modules import keybinding
-
 
 class LeptonFBWidget(Widget):
+    """Main class for the Lepton Framebuffer widget"""
     wid = Widget()
-    true_range = 0
-    save_next = 0
-    last_time = 0
-    key_action = ""
-    colourmap = 2
+
 
     def __init__(self, **kwargs):
         super(LeptonFBWidget, self).__init__(**kwargs)
         # setup a keyboard handler
         self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
         self._keyboard.bind(on_key_down=self.keyboard_handler)
+        self.true_range = 0
+        self.save_next = 0
+        self.last_time = 0
+        self.key_action = ""
+        self.colourmap = 2
 
-    # cleans up keyboard handling on exit
     def _keyboard_closed(self):
+        """cleans up keyboard handling on exit"""
         #remove keyboard handler
         self._keyboard.unbind(on_key_down=self.keyboard_handler)
         self._keyboard = None
 
-    # called when we press a key
     def keyboard_handler(self, keyboard, keycode, text, modifiers):
+        """called when we press a key"""
         self.key_action = keycode[1]
         return True
 
-    # capture an image from the Lepton sensor
-    def capture(self, flip_v=False, device="/dev/spidev0.0"):
-        with Lepton(device) as l:
-            a, _ = l.capture()
-        return a
+    @staticmethod
+    def capture(device="/dev/spidev0.0"):
+        """capture an image from the Lepton sensor"""
+        with Lepton(device) as lepton:
+            arr, _ = lepton.capture()
+        return arr
 
-    #converts a raw value to a temperature.
-    #Note: this is based on a crude approximation, better calibration required.
-    #Values used here assume startup temp of around 20C
-    def raw2Temp(self, value):
+    @staticmethod
+    def raw_to_temp(value):
+        """converts a raw value to a temperature.
+        Note: based on a crude approximation, better calibration required.
+        Values used here assume startup temp of around 20C"""
         return (value - 7400) / 29
 
-    #converts a temperature to a raw value
-    #Note: this is based on a crude approximation, better calibration required.
-    #Values used here assume startup temp of around 20C
-    def temp2Raw(self, value):
+
+    @staticmethod
+    def temp_to_raw(value):
+        """converts a temperature to a raw value
+        Note: is based on crude approximation, better calibration required.
+        Values used here assume startup temp of around 20C"""
         return (value * 29) + 7400
 
-    # draws everything to the screen
-    def draw_image(self, dt):
+
+    def draw_image(self):
+        """draws everything to the screen"""
         image_rect = ObjectProperty(None)
 
         texture = Texture.create(size=(80, 60), colorfmt="rgb")
         arr = self.capture(self)
+
+        #uncomment for testing on systems without a Lepton connected
+        #arr = np.ndarray(shape=[60, 80, 1], dtype=np.uint8)
 
         #get the minimum/maximum temp the user wants to display from the slider
         min_temp_show = self.ids["min_temp_slider"].value
@@ -89,14 +90,14 @@ class LeptonFBWidget(Widget):
         amin = np.amin(arr)
         amax = np.amax(arr)
 
-        min_temp = self.raw2Temp(amin)
-        max_temp = self.raw2Temp(amax)
+        min_temp = self.raw_to_temp(amin)
+        max_temp = self.raw_to_temp(amax)
 
         centre = arr[20][40]
-        centre_temp = self.raw2Temp(centre)
+        centre_temp = self.raw_to_temp(centre)
 
-        min_raw_show = self.temp2Raw(min_temp_show)
-        max_raw_show = self.temp2Raw(max_temp_show)
+        min_raw_show = self.temp_to_raw(min_temp_show)
+        max_raw_show = self.temp_to_raw(max_temp_show)
         raw_show_diff = max_raw_show - min_raw_show
 
         # clip values between the min and max the user says they want to see
@@ -133,7 +134,7 @@ class LeptonFBWidget(Widget):
         self.ids["mid_label"].text = "%d C" % (mid_temp_show)
         self.ids["max_label"].text = "%d C" % (max_temp_show)
 
-        a = np.uint32(arr)
+        arr4 = np.uint32(arr)
         for x in range(0, 80):
             for y in range(0, 60):
                 #true range = grayscale image with all three channels equal
@@ -145,7 +146,7 @@ class LeptonFBWidget(Widget):
                     arr2[y][x][2] = value
                 #if not pull out r,g,b values from value
                 else:
-                    value = a[59 - y][x].view(dtype=dtp)
+                    value = arr4[59 - y][x].view(dtype=dtp)
                     arr2[y][x][0] = value['r']
                     arr2[y][x][1] = value['b']
                     arr2[y][x][2] = value['g']
@@ -153,6 +154,47 @@ class LeptonFBWidget(Widget):
         #apply the chosen colour map to the image
         arr3 = cv2.applyColorMap(arr2, self.colourmap)
 
+        #save the image
+        self.__save_image(arr3, amin, amax, centre, min_temp, max_temp, \
+            centre_temp)
+
+        #send image to the screen
+        texture.blit_buffer(arr3.tostring(), bufferfmt="ubyte", colorfmt="rgb")
+
+        # redraw and scale to 600x400
+        with self.canvas:
+            self.image_rect = Rectangle(
+                texture=texture, pos=(00, 100), size=(600, 400))
+
+    @staticmethod
+    def exit():
+        """called when the user presses the exit button"""
+        exit(0)
+
+    def change_colourmap(self):
+        """called when change colourmap pressed, cycles through colourmaps"""
+        self.colourmap = self.colourmap + 1
+        if self.colourmap > 11:
+            self.colourmap = 0
+        self.draw_colourmap()
+
+    @staticmethod
+    def change_display():
+        """button callback for changing display mode,
+        exits with a value of 2 to signal to shell script"""
+        #self.change_display_next = 1
+        print "changing display"
+        exit(1)
+
+
+    def save_image(self):
+        """button call back for saving an image,
+        sets a flag to save image next time its captured"""
+        self.save_next = 1
+
+
+    def __save_image(self, arr3, amin, amax, cen, min_temp, max_temp, c_temp):
+        """handle saving the image to a file"""
         #convert from RGB to BGR because that's what openCV wants
         bgr = cv2.cvtColor(arr3, cv2.COLOR_RGB2BGR)
 
@@ -194,13 +236,13 @@ class LeptonFBWidget(Widget):
                 out, 0, 40, 0, 0, cv2.BORDER_CONSTANT, value=[0, 0, 0])
 
             # display text with min, max and centre values
-            imageText = "min: %d max: %d centre: %d" % (amin, amax, centre)
-            imageText2 = "min: %d max: %d centre: %d" % (
-                min_temp, max_temp, centre_temp)
+            image_text = "min: %d max: %d centre: %d" % (amin, amax, cen)
+            image_text2 = "min: %d max: %d centre: %d" % (
+                min_temp, max_temp, c_temp)
 
-            cv2.putText(out2, imageText, (0, 255),
+            cv2.putText(out2, image_text, (0, 255),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255))
-            cv2.putText(out2, imageText2, (0, 275),
+            cv2.putText(out2, image_text2, (0, 275),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255))
 
             #write the file to disk
@@ -210,39 +252,9 @@ class LeptonFBWidget(Widget):
             self.ids["mesg_label"].text = "Saved " + filename
             self.save_next = 0
 
-        #send image to the screen
-        texture.blit_buffer(arr3.tostring(), bufferfmt="ubyte", colorfmt="rgb")
 
-        # redraw and scale to 600x400
-        with self.canvas:
-            self.image_rect = Rectangle(
-                texture=texture, pos=(00, 100), size=(600, 400))
-
-    #called when the user presses the exit button
-    def exit(self):
-        exit(0)
-
-    #called when change colourmap pressed, lets us cycle through colourmaps
-    def change_colourmap(self):
-        self.colourmap = self.colourmap + 1
-        if self.colourmap > 11:
-            self.colourmap = 0
-        self.draw_colourmap()
-
-    # button callback for changing display mode, exits with a value of 2 to
-    # signal to shell script
-    def change_display(self):
-        self.change_display_next = 1
-        print "changing display"
-        exit(1)
-
-    # button call back for saving an image, sets a flag to save image next
-    # time its captured
-    def save_image(self):
-        self.save_next = 1
-
-    # redraws the image
-    def update(self, t):
+    def update(self, interval):
+        """redraws the image"""
 
         # restart program if framerate drops
         # due to random bug where kivy scheduler stops running at correct
@@ -268,13 +280,13 @@ class LeptonFBWidget(Widget):
             self.change_colourmap()
         self.key_action = ''
 
-        self.draw_image(t)
+        self.draw_image()
 
-    # draw all the colours in the colourmap on screen for the user to see
     def draw_colourmap(self):
-        colourmap_rect = ObjectProperty(None)
+        """draw all the colours in the colourmap for the user to see"""
+        #colourmap_rect = ObjectProperty(None)
 
-        t = Texture.create(size=(20, 256), colorfmt="rgb")
+        texture = Texture.create(size=(20, 256), colorfmt="rgb")
 
         arr = np.ndarray(shape=[256, 20], dtype=np.uint8)
         arr.fill(0)
@@ -283,15 +295,15 @@ class LeptonFBWidget(Widget):
                 arr[i][x] = 255 - i
         arr2 = cv2.applyColorMap(arr, self.colourmap)
 
-        t.blit_buffer(arr2.tostring(), bufferfmt="ubyte", colorfmt="rgb")
+        texture.blit_buffer(arr2.tostring(), bufferfmt="ubyte", colorfmt="rgb")
 
         with self.canvas:
             self.colourmap_rect = Rectangle(
-                texture=t, pos=(780, 100), size=(20, 400))
+                texture=texture, pos=(780, 100), size=(20, 400))
 
 
 class LeptonFB(App):
-
+    """"Launcher class, which runs LeptonFBWidget.update at 10hz"""
     def build(self):
         wid = LeptonFBWidget()
         wid.draw_colourmap()
