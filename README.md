@@ -27,3 +27,4 @@ Streaming output over network:
 
 run.sh tries to start up mjpg_streamer to stream a live MJPG stream on port 8080. This uses a file in /tmp/image.jpg
 which contains the latest frame as a jpg file. 
+
