@@ -1,4 +1,6 @@
-Raspberry Pi Touchscreen interface for the FLIR Lepton written in Python and Kivy
+= Raspberry Pi Touchscreen interface for the FLIR Lepton written in Python and Kivy =
+
+![A photo of the thermal imager](screenshot.jpg)
 
 Usage:
 
